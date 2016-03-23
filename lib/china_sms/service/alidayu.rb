@@ -25,9 +25,16 @@ module ChinaSMS
           options[:sign] = Digest::MD5.hexdigest(app_secret + options.sort.join + app_secret).upcase
           # 发送短信
           res = Net::HTTP.post_form(URI.parse(send_url), options)
-          results.push(result res.body)
+          result_json = result res.body
+          result_json["error_response"]["phones"] = phones if result_json["error_response"]
+          results.push(result_json)
         end
-        results
+        errors = results.select{ |r| r["error_response"] }
+        if errors.any?
+          return { success: false, errors: errors }
+        else
+          return { success: true }
+        end
       end
 
       def result body
